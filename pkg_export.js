@@ -252,12 +252,13 @@ pkg_export.SplitRange2Grids = function (range, ny, nx, prefix) {
         }
     }
     return tasks;
-}
+};
 
 pkg_export.ExportImg2 = function (Image, task, options) {
     var nrow = options.nrow || 5;
     var ncol = options.ncol || 2;
-
+    
+    var range  = options.range;
     var ranges = pkg_export.SplitRange2Grids(options.range, nrow, ncol, task);
     if (options.verbose) {
         print(ranges);
@@ -268,7 +269,8 @@ pkg_export.ExportImg2 = function (Image, task, options) {
         // if (options.verbose) print(dict.file, options.range)
         pkg_export.ExportImg(Image, dict.file, options);
     });
-} 
+    options.range = range;
+}; 
 
 
 pkg_export.updateDict = function(dict_org, dict_new) {
