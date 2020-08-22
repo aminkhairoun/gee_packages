@@ -135,7 +135,8 @@ function bandsToImgCol(img, bandname){
             .set('system:id', date.format('yyyy_MM_dd'))
             .set('system:index', date.format('yyyy_MM_dd'));
     });
-    return ee.ImageCollection(imgcol_lst);
+    return imgcol_lst;
+    // return ee.ImageCollection(imgcol_lst);
 }
 
 
