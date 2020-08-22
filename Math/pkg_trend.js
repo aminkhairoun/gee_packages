@@ -126,7 +126,7 @@ function add_dn_date(img, beginDate, IncludeYear, n){
     return ee.Image(img)
         .set('system:time_start', beginDate.millis())
         // .set('system:time_end', beginDate.advance(1, 'day').millis())
-        .set('system:id', beginDate.format('yyyy-MM-dd'))
+        .set('date', beginDate.format('yyyy-MM-dd')) // system:id
         .set('Year', yearstr)
         .set('Month', beginDate.format('MM'))
         .set('YearMonth', beginDate.format('YYYY-MM'))
@@ -146,43 +146,26 @@ function add_dn(IncludeYear, n) {
     };
 }
 
-function dailyImgIters(beginDate, endDate){
-    var daily_iters = ee.List.sequence(beginDate.millis(), endDate.millis(), 86400000)
+/**
+ * get empty imgcol by `seq.Date()`
+ * @param {*} date_begin 
+ * @param {*} date_end 
+ * @param {*} by 
+ */
+function seq_imgcol(date_begin, date_end, by) {
+    day_secs = 86400000
+    by = by*day_secs || day_secs;
+
+    var dates = ee.List.sequence(date_begin.millis(), date_end.millis(), by)
         .map(function(x) {return ee.Date(x); });
-    // var days = daily_iters.length(); 
-    /** ImgCols Iters used to select the nearest Imgs */
-    var dailyImg_iters = daily_iters.map(function(beginDate){
-        return add_dn_date(ee.Image(0), beginDate);
+    /** blank ImgCol used to select the nearest Imgs */
+    return dates.map(function(date){
+        return add_dn_date(ee.Image(0), date);
     });
-    return dailyImg_iters;
 }
 
 /** [hour3Todaily description] */
-function hour3Todaily(ImgCol, dailyImg_iters, reducer) {
-    if (typeof dailyImg_iters === 'undefined') { 
-        var first = ee.Image(ImgCol.first()), 
-            last  = imgcol_last(ImgCol);
-        var beginDate = ee.Date(first.get('system:time_start')),
-            endDate   = ee.Date(last.get('system:time_start'));
-        dailyImg_iters = dailyImgIters(beginDate, endDate);
-    }
-    if (typeof reducer === 'undefined') { reducer = 'mean'; }
-    var filterDateEq = ee.Filter.equals({ leftField: 'system:id', rightField: 'system:id' });
-    // ee.Join.inner was inappropriate here
-    var saveAllJoin = ee.Join.saveAll({
-        matchesKey: 'matches',
-        ordering: 'system:time_start',
-        ascending: true
-    });
-    var ImgCol_raw = saveAllJoin.apply(dailyImg_iters, ImgCol, filterDateEq)
-        .map(function(img) {
-            img = ee.Image(img);
-            var imgcol = ee.ImageCollection.fromImages(img.get('matches')); //.fromImages
-            return imgcol.reduce(reducer)
-                .copyProperties(img, ['system:time_start', 'system:id', 'dn']);
-        });
-    return ee.ImageCollection(ImgCol_raw);
-}
+
 
 function imgcol_addSeasonProb(imgcol){
     return imgcol.map( function(img) { return addSeasonProb(img, false); } );
@@ -205,8 +188,8 @@ pkg_trend = {
     addSeasonProb       : addSeasonProb,
     add_dn_date         : add_dn_date,
     add_dn              : add_dn,
-    dailyImgIters       : dailyImgIters,
-    hour3Todaily        : hour3Todaily, 
+    // dailyImgIters       : dailyImgIters,
+    // hour3Todaily        : hour3Todaily, 
     linearTrend         : linearTrend,
     imgcol_trend        : imgcol_trend,
     createConstantBand  : createConstantBand,
@@ -242,7 +225,7 @@ pkg_trend.copyProperties = function(source, destination, properties) {
  *                          Just deltaY = y_end - y_begin. (for dataset like GRACE)
  * @return {[type]}         [description]
  */
-pkg_trend.aggregate_prop = function(ImgCol, prop, reducerList, bandsList, delta){
+pkg_trend.aggregate_prop = function (ImgCol, prop, reducerList, bandsList, delta) {
     function check_list(x) {
         if (!Array.isArray(x)) x = [x];
         return x;
@@ -250,37 +233,43 @@ pkg_trend.aggregate_prop = function(ImgCol, prop, reducerList, bandsList, delta)
 
     var bands_all = ImgCol.first().bandNames();
 
-    if (reducerList === undefined) {reducerList = ['mean'];}
-    if (bandsList   === undefined) {bandsList   = bands_all;}
-    if (delta       === undefined) {delta       = false;}
+    reducerList = reducerList || ['mean'];
+    bandsList = bandsList || bands_all;
+    if (delta === undefined) { delta = false; }
 
     reducerList = check_list(reducerList);
-    bandsList   = check_list(bandsList);
+    bandsList = check_list(bandsList);
     var n = reducerList.length;
-
+    if (bandsList.length === 1 && reducerList.length > 1) {
+        temp = bandsList[0];
+        bandsList = [];
+        var temp = reducerList.forEach(function (reducer, i) {
+            bandsList.push(temp);
+        });
+    }
     var dates = ee.Dictionary(ImgCol.aggregate_histogram(prop)).keys()
-    .map(function(p){
-        return ee.Image(0).set(prop, p).set('system:id', p);
-    });
-    // print(dates);
-    var filterDateEq = ee.Filter.equals({ leftField : prop, rightField: prop});
+        .map(function (p) {
+            return ee.Image(0).set(prop, p).set('system:id', p);
+        });
+
+    var filterDateEq = ee.Filter.equals({ leftField: prop, rightField: prop });
     var saveAllJoin = ee.Join.saveAll({
         matchesKey: 'matches',
-        ordering  : 'system:time_start',
-        ascending : true
+        ordering: 'system:time_start',
+        ascending: true
     });
-    
-    function process(img){
+
+    function process(img) {
         img = ee.Image(img);
         var imgcol = ee.ImageCollection.fromImages(img.get('matches')).sort('system:time_start'); //.fromImages
 
         var first = ee.Image(imgcol.first());
-        var last  = pkg_trend.imgcol_last(imgcol);
-        
+        var last = pkg_trend.imgcol_last(imgcol);
+
         var ans = ee.Image([]);
         if (!delta) {
             for (var i = 0; i < n; i++) {
-                var bands   = bandsList[i];
+                var bands = bandsList[i];
                 var reducer = reducerList[i];
                 // print('debug', i, bands, reducer)
                 var img_new = imgcol.select(bands).reduce(reducer);
@@ -291,18 +280,23 @@ pkg_trend.aggregate_prop = function(ImgCol, prop, reducerList, bandsList, delta)
             ans = last.subtract(first);
         }
         // print(ans, 'ans');
-        return pkg_trend.copyProperties( ee.Image(ans), ee.Image(imgcol.first()) )
-                .copyProperties(img, ['system:id', prop]);
+        return pkg_trend.copyProperties(ee.Image(ans), ee.Image(imgcol.first()))
+            .copyProperties(img, ['system:id', prop]);
     }
-    
+
     var ImgCol_new = saveAllJoin.apply(dates, ImgCol, filterDateEq)
         .map(process);
     // var img = ImgCol_new.first();
     // print(img, process(img))
     var bands = ee.List(bandsList).flatten();
-    return ee.ImageCollection(ImgCol_new)
-        .select(ee.List.sequence(0, bands.length().subtract(1)), bands);
+
+    var out = ee.ImageCollection(ImgCol_new);
+    if (reducerList.length === 1) {
+        out = out.select(ee.List.sequence(0, bands.length().subtract(1)), bands);
+    }
+    return out;
 };
+
 
 
 // print(pkg_trend.YearDn_date('2010-45'));
