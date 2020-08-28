@@ -14,10 +14,10 @@ var pkg_main = require('users/kongdd/public:pkg_main.js');
  * @return {[type]}           [description]
  *
  * @example
- * var pkg_vis   = require('users/kongdd/public:pkg_vis.js');
- * 
- * var label = ui.Label('text'); Map.add(label);
- * pkg_vis.series(imgcol, {}, 'bandname', region, label);
+// var pkg_vis   = require('users/kongdd/public:pkg_vis.js');
+// 
+// var label = ui.Label('text'); Map.add(label);
+// pkg_vis.series(imgcol, {}, 'bandname', region, label);
  */
 function series(ImgCol, vis, name, region, label, scale) {
     scale   = scale || 2000;
