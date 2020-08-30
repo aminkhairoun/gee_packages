@@ -63,12 +63,12 @@ function imgcolRegions(imgcol, regions, name){
  * 
  * add properties, i.e., [system:time_start, system:time_end, system:id] to Image
  *           
- * @param {Image}   img       [description]
- * @param {ee.Date} beginDate [description]
+ * @param {Image}   img  [description]
+ * @param {ee.Date} date [description]
  */
-function img_setDate(img, beginDate) {
-    beginDate = ee.Date(beginDate);
-    return ee.Imaeg(img)
+function img_setDate(img, date) {
+    date = ee.Date(date);
+    return ee.Image(img)
         .set('system:time_start', date.millis())
         .set('system:index', date.format('YYYY_MM_dd'))
         .set('system:id', date.format('YYYY_MM_dd'));
@@ -77,46 +77,6 @@ function img_setDate(img, beginDate) {
 }
 
 var setImgProperties = img_setDate;
-
-
-
-/**
- * [array2imgcol description]
- *
- * @param  {[type]} mat   [description]
- * @param  {[type]} nrow  [description]
- * @param  {[type]} ncol  [description]
- * @param  {[type]} bands [description]
- * @param  {[type]} dates [description]
- * @return {[type]}       [description]
- */
-function array2imgcol(mat, nrow, ncol, bands, dates){
-    // var dates   = ee.List(imgcol.aggregate_array('system:time_start'));
-    // var indices = ee.List(imgcol.aggregate_array('system:index'));
-    mat  = ee.Image(mat);
-    nrow = ee.Number(nrow);
-    ncol = ee.Number(ncol);
-    
-    if (bands === undefined){
-        bands = ee.List.sequence(1, ncol).map(function(i){
-            return ee.String('iter').cat(ee.Number(i).int());
-        }).getInfo();
-        // print(bands);
-    }
-
-    var imgcol_new = ee.List.sequence(0, nrow.subtract(1))
-        .map(function(i) {
-            i = ee.Number(i).int();
-            var beginDate = ee.Date(dates.get(i));
-           
-            var yi  = mat.arraySlice(0, i, i.add(1));
-            var img = yi.arrayProject([1]).arrayFlatten([bands]);
-            return setImgProperties(img, beginDate);
-            // return img.addBands(whit);
-        });
-    return ee.ImageCollection(imgcol_new);
-    // return pkg_main.setImgProperties(img, beginDate);  
-}
 
 /**
  * multiple bands image convert to image list
@@ -201,7 +161,6 @@ var pkg_main = {
     imgRegions      : imgRegions,
     imgcolRegion    : imgcolRegion,
     imgcolRegions   : imgcolRegions,
-    array2imgcol    : array2imgcol,
     bandsToImgCol   : bandsToImgCol,
     getQABits       : getQABits,
     qc2bands        : qc2bands,
@@ -232,6 +191,7 @@ pkg_main.is_empty_dict = function(x){
 }
 
 pkg_main.imgcol_setProp = function (imgcol, probName, probs) {
+    if (!probs) return imgcol;
     var n = imgcol.size();
     var lst = imgcol.toList(n);
     var res;
@@ -257,6 +217,42 @@ pkg_main.imgcol_setProp = function (imgcol, probName, probs) {
 
 pkg_main.imgcol_setDate = function (imgcol, dates) {
     return pkg_main.imgcol_setProp(imgcol, 'date', dates);
+}
+
+/**
+ * [array2imgcol description]
+ *
+ * @param  {[type]} mat   [description]
+ * @param  {[type]} nrow  [description]
+ * @param  {[type]} ncol  [description]
+ * @param  {[type]} bands [description]
+ * @param  {[type]} dates [description]
+ * @return {[type]}       [description]
+ */
+pkg_main.array2imgcol = function (mat, bands, dates) {
+    // var dates   = ee.List(imgcol.aggregate_array('system:time_start'));
+    // var indices = ee.List(imgcol.aggregate_array('system:index'));
+    mat = ee.Image(mat);
+    // nrow = ee.Number(nrow);
+    var nrow = dates.length();
+    if (bands === undefined) {
+        bands = ee.List.sequence(1, ncol).map(function (i) {
+            return ee.String('iter').cat(ee.Number(i).int());
+        }).getInfo();
+    }
+    var ncol = bands.length;
+
+    var res = ee.List.sequence(0, nrow.subtract(1))
+        .map(function (i) {
+            i = ee.Number(i).int();
+            var yi = mat.arraySlice(0, i, i.add(1));
+            var img = yi.arrayProject([1]).arrayFlatten([bands]);
+            var beginDate = ee.Date(dates.get(i));
+            return pkg_main.img_setDate(img, beginDate);
+            // return img;
+        });
+    // res = pkg_main.imgcol_setDate(ee.ImageCollection(res), dates);
+    return ee.ImageCollection(res);
 }
 
 exports = pkg_main;
