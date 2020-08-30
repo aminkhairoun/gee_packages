@@ -78,34 +78,6 @@ function img_setDate(img, date) {
 
 var setImgProperties = img_setDate;
 
-/**
- * multiple bands image convert to image list
- * 
- * The bandName should be like that "b2003-01-01".
- * 
- * @param  {[type]} img      multiple bands image
- * @param  {[type]} bandname the new bandname
- * @return {ee.List}         List of images
- */
-function bandsToImgCol(img, bandname){
-    bandname = bandname || "b1";
-    
-    img = ee.Image(img);
-    var names = img.bandNames(); // ee.List
-    var n     = names.size();
-    
-    var imgcol_lst = names.map(function(name){
-        var date = ee.Date.parse('YYYY_MM_dd', ee.String(name).slice(1, 11));
-        return img.select([name], [bandname])
-            .set('system:time_start', date.millis())
-            // .set('system:time_end', beginDate.advance(1, 'day').millis())
-            .set('system:id', date.format('yyyy_MM_dd'))
-            .set('system:index', date.format('yyyy_MM_dd'));
-    });
-    return imgcol_lst;
-    // return ee.ImageCollection(imgcol_lst);
-}
-
 
 /**
  * Extract bitcoded QA information from a band and return it as an image.
@@ -161,7 +133,6 @@ var pkg_main = {
     imgRegions      : imgRegions,
     imgcolRegion    : imgcolRegion,
     imgcolRegions   : imgcolRegions,
-    bandsToImgCol   : bandsToImgCol,
     getQABits       : getQABits,
     qc2bands        : qc2bands,
 };
@@ -169,14 +140,14 @@ var pkg_main = {
 
 pkg_main.seq_len = function(n) {
     return Array(n).join().split(',').map(function (e, i) { return i; });
-}
+};
 
 pkg_main.seq = function(from, to, by) {
     by = by || 1;
     var res = [];
     for (var i = from; i <= to; i += by) { res.push(i); }
     return res;
-}
+};
 
 pkg_main.array2dict = function(arr) {
     var res = {};
@@ -184,11 +155,11 @@ pkg_main.array2dict = function(arr) {
         res[i] = arr[i];
     }
     return res;
-}
+};
 
 pkg_main.is_empty_dict = function(x){
     return Object.keys(x).length === 0
-}
+};
 
 pkg_main.imgcol_setProp = function (imgcol, probName, probs) {
     if (!probs) return imgcol;
@@ -213,14 +184,43 @@ pkg_main.imgcol_setProp = function (imgcol, probName, probs) {
         });
     }
     return ee.ImageCollection(res);
-}
+};
 
 pkg_main.imgcol_setDate = function (imgcol, dates) {
     return pkg_main.imgcol_setProp(imgcol, 'date', dates);
+};
+
+/**
+ * multiple bands image convert to image list
+ * 
+ * The bandName should be like that "b2003-01-01".
+ * 
+ * @param  {[type]} img      multiple bands image
+ * @param  {[type]} bandname the new bandname
+ * @return {ee.List}         List of images
+ */
+pkg_main.bands2imgcol = function(img, bandname) {
+    bandname = bandname || "b1";
+    img = ee.Image(img);
+    var names = img.bandNames(); // ee.List
+    var n = names.size();
+
+    var imgcol_lst = names.map(function (name) {
+        var date = ee.Date.parse('YYYY_MM_dd', ee.String(name).slice(1, 11));
+        return img.select([name], [bandname])
+            .set('system:time_start', date.millis())
+            // .set('system:time_end', beginDate.advance(1, 'day').millis())
+            .set('system:id', date.format('yyyy_MM_dd'))
+            .set('system:index', date.format('yyyy_MM_dd'));
+    });
+    return imgcol_lst;
+    // return ee.ImageCollection(imgcol_lst);
 }
 
 /**
  * [array2imgcol description]
+ * 
+ * Convert 2d ImageArray into imgcol
  *
  * @param  {[type]} mat   [description]
  * @param  {[type]} nrow  [description]
@@ -229,7 +229,7 @@ pkg_main.imgcol_setDate = function (imgcol, dates) {
  * @param  {[type]} dates [description]
  * @return {[type]}       [description]
  */
-pkg_main.array2imgcol = function (mat, bands, dates) {
+pkg_main.array2imgcol = function (mat, dates, bands) {
     // var dates   = ee.List(imgcol.aggregate_array('system:time_start'));
     // var indices = ee.List(imgcol.aggregate_array('system:index'));
     mat = ee.Image(mat);
@@ -253,6 +253,14 @@ pkg_main.array2imgcol = function (mat, bands, dates) {
         });
     // res = pkg_main.imgcol_setDate(ee.ImageCollection(res), dates);
     return ee.ImageCollection(res);
-}
+};
+
+pkg_main.array2imgcol_1d = function (mat, dates, bandname) {
+    bandname = bandname || "b1";
+    var bands = dates.map(function (x) { return ee.String("b").cat(ee.Date(x).format("YYYY_MM_dd")) });
+    var img = mat.arrayProject([1]).arrayFlatten([bands]); // multiple bands img
+    var res = ee.ImageCollection(pkg_main.bands2imgcol(img));
+    return res;
+};
 
 exports = pkg_main;
