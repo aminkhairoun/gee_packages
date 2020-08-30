@@ -10,22 +10,6 @@ var addDateProp = function(img) {
     return img.set('date', ee.Date(img.get('system:time_start')).format('yyyy-MM-dd'));
 };
 
-/**
- * setImgProperties 
- * 
- * add properties, i.e., [system:time_start, system:time_end, system:id] to Image
- *           
- * @param {Image}   img       [description]
- * @param {ee.Date} beginDate [description]
- */
-function setImgProperties(img, beginDate) {
-    beginDate = ee.Date(beginDate);
-    return ee.Image(img)
-        .set('system:time_start', beginDate.millis())
-        // .set('system:time_end', beginDate.advance(1, 'day').millis())
-        .set('system:id', beginDate.format('yyyy-MM-dd'));
-}
-
 /** get values from image array or imgcol, clipped by region or regions */
 function imgRegion(img, region, name){
     var val = ee.Image(img).reduceRegion({reducer:ee.Reducer.toList(), geometry:region, scale:500});
@@ -72,6 +56,29 @@ function imgcolRegions(imgcol, regions, name){
     }
     return vals;
 }
+
+
+/**
+ * img_setDate
+ * 
+ * add properties, i.e., [system:time_start, system:time_end, system:id] to Image
+ *           
+ * @param {Image}   img       [description]
+ * @param {ee.Date} beginDate [description]
+ */
+function img_setDate(img, beginDate) {
+    beginDate = ee.Date(beginDate);
+    return ee.Imaeg(img)
+        .set('system:time_start', date.millis())
+        .set('system:index', date.format('YYYY_MM_dd'))
+        .set('system:id', date.format('YYYY_MM_dd'));
+        // .set('system:time_end', beginDate.advance(1, 'day').millis())
+        // .set('system:id', beginDate.format('yyyy-MM-dd'));
+}
+
+var setImgProperties = img_setDate;
+
+
 
 /**
  * [array2imgcol description]
@@ -189,6 +196,7 @@ var pkg_main = {
     addYearProp     : addYearProp,
     addDateProp     : addDateProp,
     setImgProperties: setImgProperties,
+    img_setDate     : img_setDate,
     imgRegion       : imgRegion,
     imgRegions      : imgRegions,
     imgcolRegion    : imgcolRegion,
@@ -221,6 +229,34 @@ pkg_main.array2dict = function(arr) {
 
 pkg_main.is_empty_dict = function(x){
     return Object.keys(x).length === 0
+}
+
+pkg_main.imgcol_setProp = function (imgcol, probName, probs) {
+    var n = imgcol.size();
+    var lst = imgcol.toList(n);
+    var res;
+    if (probName === "date") {
+        res = ee.List.sequence(0, n.subtract(1)).map(function (i) {
+            // var prob = probs.get(i);
+            var img = ee.Image(lst.get(i));
+            var date = ee.Date(probs.get(i));
+            return img.set('system:time_start', date.millis())
+                .set('system:index', date.format('YYYY_MM_dd'))
+                .set('system:id', date.format('YYYY_MM_dd'));
+            // .set('id', date.format('YYYY_MM_dd'));
+        });
+    } else {
+        res = ee.List.sequence(0, n.subtract(1)).map(function (i) {
+            var prob = probs.get(i);
+            var img = lst.get(i);
+            return img.set(probName, prob);
+        });
+    }
+    return ee.ImageCollection(res);
+}
+
+pkg_main.imgcol_setDate = function (imgcol, dates) {
+    return pkg_main.imgcol_setProp(imgcol, 'date', dates);
 }
 
 exports = pkg_main;
