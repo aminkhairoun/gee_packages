@@ -258,9 +258,9 @@ pkg_main.array2imgcol = function (mat, dates, bands) {
 pkg_main.array2imgcol_1d = function (mat, dates, bandname) {
     bandname = bandname || "b1";
     var bands = dates.map(function (x) { return ee.String("b").cat(ee.Date(x).format("YYYY_MM_dd")) });
-    var img = mat.arrayProject([1]).arrayFlatten([bands]); // multiple bands img
-    var res = ee.ImageCollection(pkg_main.bands2imgcol(img));
-    return res;
+    var img = mat.arrayProject([0]).arrayFlatten([bands]); // multiple bands img
+    return pkg_main.bands2imgcol(img, bandname);
+    // return res;
 };
 
 exports = pkg_main;
