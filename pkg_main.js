@@ -217,6 +217,14 @@ pkg_main.bands2imgcol = function(img, bandname) {
     // return ee.ImageCollection(imgcol_lst);
 }
 
+pkg_main.array2imgcol_1d = function (mat, dates, bandname) {
+    bandname = bandname || "b1";
+    var bands = dates.map(function (x) { return ee.String("b").cat(ee.Date(x).format("YYYY_MM_dd")) });
+    var img = mat.arrayProject([0]).arrayFlatten([bands]); // multiple bands img
+    return pkg_main.bands2imgcol(img, bandname);
+    // return res;
+};
+
 /**
  * [array2imgcol description]
  * 
@@ -235,13 +243,11 @@ pkg_main.array2imgcol = function (mat, dates, bands) {
     mat = ee.Image(mat);
     // nrow = ee.Number(nrow);
     var nrow = dates.length();
-    if (bands === undefined) {
-        bands = ee.List.sequence(1, ncol).map(function (i) {
-            return ee.String('iter').cat(ee.Number(i).int());
-        }).getInfo();
-    }
-    var ncol = bands.length;
-
+    bands = bands || ["b1"];
+    // bands = ee.List.sequence(1, ncol).map(function (i) {
+    //     return ee.String('iter').cat(ee.Number(i).int());
+    // }).getInfo();
+    // var ncol = bands.length;
     var res = ee.List.sequence(0, nrow.subtract(1))
         .map(function (i) {
             i = ee.Number(i).int();
@@ -255,12 +261,5 @@ pkg_main.array2imgcol = function (mat, dates, bands) {
     return ee.ImageCollection(res);
 };
 
-pkg_main.array2imgcol_1d = function (mat, dates, bandname) {
-    bandname = bandname || "b1";
-    var bands = dates.map(function (x) { return ee.String("b").cat(ee.Date(x).format("YYYY_MM_dd")) });
-    var img = mat.arrayProject([0]).arrayFlatten([bands]); // multiple bands img
-    return pkg_main.bands2imgcol(img, bandname);
-    // return res;
-};
 
 exports = pkg_main;
