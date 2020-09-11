@@ -3,9 +3,13 @@ var imgcol_d = ee.ImageCollection("projects/pml_evapotranspiration/landcover_imp
     imgcol_s = ee.ImageCollection("projects/pml_evapotranspiration/landcover_impact/PMLV2_yearly_v016_static"),
     imgcol_8d = ee.ImageCollection("projects/pml_evapotranspiration/PML/OUTPUT/PML_V2_8day_v016");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
+/**
+ * Copyright (c) 2019 Dongdong Kong. All rights reserved.
+ * This work is licensed under the terms of the MIT license.
+ * For a copy, see <https://opensource.org/licenses/MIT>.
+ */
 var pkg_export = require('users/kongdd/public:pkg_export.js');
 // var pkg_trend  = require('users/kongdd/public:Math/pkg_trend.js');
-
 // export parameters
 var options = {
     type: "drive",
