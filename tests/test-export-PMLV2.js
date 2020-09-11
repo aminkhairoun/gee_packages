@@ -1,6 +1,7 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
 var imgcol_d = ee.ImageCollection("projects/pml_evapotranspiration/landcover_impact/PMLV2_yearly_v016_dynamic"),
-    imgcol_s = ee.ImageCollection("projects/pml_evapotranspiration/landcover_impact/PMLV2_yearly_v016_static");
+    imgcol_s = ee.ImageCollection("projects/pml_evapotranspiration/landcover_impact/PMLV2_yearly_v016_static"),
+    imgcol_8d = ee.ImageCollection("projects/pml_evapotranspiration/PML/OUTPUT/PML_V2_8day_v016");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var pkg_export = require('users/kongdd/public:pkg_export.js');
 // var pkg_trend  = require('users/kongdd/public:Math/pkg_trend.js');
@@ -17,4 +18,5 @@ var options = {
 };
 
 // pkg_export.ExportImgCol(imgcol_d, null, options, 'PMLV2_veg-dynamic_');
-pkg_export.ExportImgCol(imgcol_s, null, options, 'PMLV2_veg-static_');
+// pkg_export.ExportImgCol(imgcol_s, null, options, 'PMLV2_veg-static_');
+pkg_export.ExportImgCol(imgcol_8d.limit(3), null, options, 'PMLV2_veg-static_');
