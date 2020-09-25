@@ -174,6 +174,9 @@ pkg_export.ExportImg = function (Image, task, options) {
  * - `crsTransform`: Affine transform to use for the exported image. Requires "crs" to be defined.
  * - `dimensions`  : If specified, the calculated dimension from `cellsize` and 
  * `range` will be abandoned.
+ * - `filterProp`: The property used for filter a centain image. The default value 
+ * is `system:time_start`, this parameter is for landsat. 
+ * When export landsat, filterProp can be 'system:index'.
  * 
  * @param {String} prefix The prefix of the exported file name.
  */
@@ -184,8 +187,16 @@ pkg_export.ExportImgCol = function(ImgCol, dateList, options, prefix)
      * If dateList was undefined, this function is low efficient.
      * ee.ImageCollection.toList() is quite slow, often lead to time out.
      */
-    dateList = dateList || ee.List(ImgCol.aggregate_array('system:time_start'))
-        .map(function(date){ return ee.Date(date).format('yyyy-MM-dd'); }).getInfo();
+    var filterProp = options.filterProp || "system:time_start";
+    if (!dateList) {
+        if (filterProp === "system:time_start") {
+            dateList = ee.List(ImgCol.aggregate_array('system:time_start'))
+                .map(function (date) { return ee.Date(date).format('yyyy-MM-dd'); }).getInfo();
+        } else {
+            dateList = ee.List(ImgCol.aggregate_array(filterProp))
+                .map(function (date) { return ee.String(date).replace("/", "_", 'g'); }).getInfo();
+        }
+    }
 
     // cellsize = cellsize || pkg_export.getProj(Image)['crsTransform'][0];
     // type   = type   || 'drive';
@@ -193,11 +204,17 @@ pkg_export.ExportImgCol = function(ImgCol, dateList, options, prefix)
     prefix = prefix || '';
 
     // dateList.evaluate(function(dateList) {
+        var img;
         var n = dateList.length;
         for (var i = 0; i < n; i++) {
             // var img  = ee.Image(colList.get(i));
             var date = dateList[i];
-            var img  = ee.Image(ImgCol.filterDate(date).first()); 
+            if (filterProp === "system:time_start") {
+                img = ee.Image(ImgCol.filterDate(date).first()); 
+            } else {
+                img = ee.Image(ImgCol.filterMetadata(filterProp, 'equals', date).first()); 
+            }
+            
             // var task = img.get('system:id');//.getInfo();
             var task = prefix + date;
             print(task);
