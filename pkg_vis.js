@@ -109,6 +109,10 @@ function grad_legend(viz, title, IsPlot, position, fontSize) {
     }
 }
 
+// Examples
+// var pkg_vis   = require('users/kongdd/public:pkg_vis.js');
+// var vis_et = {min:0, max:3000, palette: pkg_vis.colors.RdBu[10]};
+// pkg_vis.grad_legend(vis_et, 'ET_pot mm/y');
 function discrete_legend(names, palette, title, IsPlot, position, fontSize) {
     fontSize = fontSize || "20px";
     title    = title || "";
