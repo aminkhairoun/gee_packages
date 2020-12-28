@@ -2,8 +2,8 @@
 var pkg_trend = {};
 
 /**
- * [addSeasonProb description]
- *
+ * Add season, year, month, yearmonth, year-ingrow, ingrow,
+ * 
  * add seasonal variables into img before regression
  * @param {[type]} img [description]
  * @param {boolean} pheno If true, 4-10 as growing season, spring:4-5, summer: 6-8, autumn:9-10
@@ -34,12 +34,12 @@ pkg_trend.addSeasonProb = function(img, pheno){
         season = ee.Algorithms.If(month.gte(12), ee.String(year).cat("_winter"), season);
     }
     
-    return img.set('Season', season)
+    return img.set('season', season)
         .set('ingrow', ingrow)
-        .set('Year-ingrow', year.format().cat('-').cat(ingrow))
-        .set('Year', year.format())
-        .set('Month', month.format("%02d"))
-        .set('YearMonth', date.format('YYYY-MM')); //seasons.get(month.subtract(1))
+        .set('year-ingrow', year.format().cat('-').cat(ingrow))
+        .set('year', year.format())
+        .set('month', month.format("%02d"))
+        .set('yearmonth', date.format('YYYY-MM')); //seasons.get(month.subtract(1))
 }
 
 /** add dn prop to every img */
@@ -63,9 +63,9 @@ pkg_trend.add_dn_date = function(img, beginDate, IncludeYear, n){
         .set('system:time_start', beginDate.millis())
         // .set('system:time_end', beginDate.advance(1, 'day').millis())
         .set('date', beginDate.format('yyyy-MM-dd')) // system:id
-        .set('Year', yearstr)
-        .set('Month', beginDate.format('MM'))
-        .set('YearMonth', beginDate.format('YYYY-MM'))
+        .set('year', yearstr)
+        .set('month', beginDate.format('MM'))
+        .set('yearmonth', beginDate.format('YYYY-MM'))
         .set('dn', dn); //add dn for aggregated into 8days
 }
 
@@ -175,6 +175,11 @@ pkg_trend.seq_date = function (date_begin, date_end, by) {
         .map(function (x) { return ee.Date(x); });
 }
 
+pkg_trend.date_format = function(dates) {
+    return dates.map(function(date) { return ee.Date(date).format('yyyy-MM-dd'); })
+}
+
+// by: in day
 pkg_trend.seq_yeardate = function (year, by) {
     var date_begin = ee.Date.fromYMD(year, 1, 1);
     var date_end = ee.Date.fromYMD(year, 12, 31);
