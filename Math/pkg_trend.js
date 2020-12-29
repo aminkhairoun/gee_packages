@@ -247,7 +247,7 @@ pkg_trend.check_aggregate = function(bandList, reducerList, ImgCol) {
     if (bandList.length === 1 && reducerList.length > 1) {
         temp = bandList[0];
         bandList = [];
-        var temp = reducerList.forEach(function (reducer, i) {
+        reducerList.forEach(function (reducer, i) {
             bandList.push(temp);
         });
     }
@@ -285,6 +285,20 @@ pkg_trend.aggregate_process = function (ImgCol, prop, prop_val, bandList, reduce
     return pkg_trend.copyProperties(ee.Image(ans), first);
 }
 
+pkg_trend.aggregate_process2 = function (imgcol, bandList, reducerList) {
+    var nreducer = reducerList.lengh;
+    var first = ee.Image(imgcol.first());
+
+    var ans = ee.Image([]);
+    for (var i = 0; i < nreducer; i++) {
+        var bands = bandList[i];
+        var reducer = reducerList[i];
+        var img_new = imgcol.select(bands).reduce(reducer);
+        ans = ans.addBands(img_new);
+    }
+    return ee.Image(pkg_trend.copyProperties(ee.Image(ans), first));
+};
+
 pkg_trend.aggregate_prop = function (ImgCol, prop, reducerList, bandList, delta) {
     if (delta === undefined) { delta = false; }
     var dates = ee.Dictionary(ImgCol.aggregate_histogram(prop)).keys();
@@ -305,5 +319,4 @@ pkg_trend.aggregate_prop = function (ImgCol, prop, reducerList, bandList, delta)
     return out;
 };
 
-// print(pkg_trend.YearDn_date('2010-45'));
 exports = pkg_trend;
